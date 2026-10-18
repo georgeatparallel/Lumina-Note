@@ -14,8 +14,8 @@ export interface SearchConfig {
 // Keep permission-name matching aligned with the release-pinned opencode
 // util/wildcard.ts, including its optional trailing " *" convention.
 function matches(pattern: string, name: string): boolean {
-  name = name.replaceAll('\\', '/')
-  pattern = pattern.replaceAll('\\', '/')
+  name = name.replace(/\\/g, '/')
+  pattern = pattern.replace(/\\/g, '/')
   let escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&')
     .replace(/\*/g, '.*').replace(/\?/g, '.')
   if (escaped.endsWith(' .*')) escaped = escaped.slice(0, -3) + '( .*)?'

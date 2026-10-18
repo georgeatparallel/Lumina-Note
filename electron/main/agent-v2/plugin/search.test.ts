@@ -54,6 +54,15 @@ describe('default Parallel Search MCP', () => {
     })
   })
 
+  it.each([
+    { tools: { websearch: true }, permission: { websearch: 'deny' } },
+    { permission: { websearch: 'deny', 'web*': 'allow' } },
+    { permission: { 'web*': 'allow', websearch: 'deny' } },
+  ])('keeps exact network denials above deprecated tools and wildcard allows', async (agent) => {
+    const config = await configure({ agent: { restricted: agent } })
+    expect(config.agent!.restricted.permission).toMatchObject({ lumina_parallel_web_search: 'deny' })
+  })
+
   it('preserves an agent’s explicit MCP permissions', async () => {
     const config = await configure({ agent: { custom: { permission: {
       websearch: 'deny', 'lumina_parallel_*': 'ask',

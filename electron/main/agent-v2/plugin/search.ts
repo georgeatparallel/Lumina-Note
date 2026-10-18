@@ -14,7 +14,8 @@ export interface SearchConfig {
 // Opencode permission names support '*' and '?' wildcards.
 function matches(pattern: string, name: string): boolean {
   const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`^${escaped.replace(/\*/g, '.*').replace(/\?/g, '.')}$`).test(name)
+  const flags = process.platform === 'win32' ? 'si' : 's'
+  return new RegExp(`^${escaped.replace(/\*/g, '.*').replace(/\?/g, '.')}$`, flags).test(name)
 }
 
 /**
@@ -60,23 +61,27 @@ export function configureSearchMcp(config: SearchConfig): void {
   // network restrictions so background agents cannot bypass them.
   for (const agent of Object.values(config.agent ?? {})) {
     if (typeof agent.permission === 'string') continue
-    const original = agent.permission ?? {}
-    const policy = { ...original }
+    // Match ConfigAgent.normalize: deprecated tools are defaults; explicit
+    // permissions win. The hook normally receives this already normalized.
+    const original: Record<string, unknown> = {
+      ...Object.fromEntries(Object.entries(agent.tools ?? {})
+        .map(([name, enabled]) => [name, enabled ? 'allow' : 'deny'])),
+      ...agent.permission,
+    }
+    const policy = { ...agent.permission }
+    // Match Permission.fromConfig: wildcard tool rules precede exact rules.
+    const entries = Object.entries(original).sort(([a], [b]) =>
+      Number(b.includes('*')) - Number(a.includes('*')))
     for (const [builtin, mcp] of [
       ['websearch', 'lumina_parallel_web_search'],
       ['webfetch', 'lumina_parallel_web_fetch'],
     ]) {
       if (Object.keys(original).some((key) => key !== '*' && matches(key, mcp))) continue
-      if (agent.tools?.[builtin] !== undefined) {
-        policy[mcp] = agent.tools[builtin] ? 'allow' : 'deny'
-      }
-      else {
-        for (const [pattern, action] of Object.entries(original)) {
-          if (pattern === '*' || !matches(pattern, builtin)) continue
-          // URL/query-scoped rules cannot be applied to MCP's '*' resource.
-          // Keep those restrictions by denying the corresponding default tool.
-          policy[mcp] = typeof action === 'string' ? action : 'deny'
-        }
+      for (const [pattern, action] of entries) {
+        if (pattern === '*' || !matches(pattern, builtin)) continue
+        // URL/query-scoped rules cannot be applied to MCP's '*' resource.
+        // Keep those restrictions by denying the corresponding default tool.
+        policy[mcp] = typeof action === 'string' ? action : 'deny'
       }
     }
     agent.permission = policy

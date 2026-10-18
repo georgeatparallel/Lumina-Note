@@ -76,7 +76,7 @@ export function configureSearchMcp(config: SearchConfig): void {
       ['websearch', 'lumina_parallel_web_search'],
       ['webfetch', 'lumina_parallel_web_fetch'],
     ]) {
-      if (Object.keys(original).some((key) => key !== '*' && matches(key, mcp))) continue
+      if (Object.keys(original).some((key) => key !== '*' && matches(key, mcp) && !matches(key, builtin))) continue
       for (const [pattern, action] of entries) {
         if (pattern === '*' || !matches(pattern, builtin)) continue
         // URL/query-scoped rules cannot be applied to MCP's '*' resource.

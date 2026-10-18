@@ -58,6 +58,7 @@ describe('default Parallel Search MCP', () => {
     { tools: { websearch: true }, permission: { websearch: 'deny' } },
     { permission: { websearch: 'deny', 'web*': 'allow' } },
     { permission: { 'web*': 'allow', websearch: 'deny' } },
+    { permission: { websearch: 'deny', '*web*': 'allow' } },
   ])('keeps exact network denials above deprecated tools and wildcard allows', async (agent) => {
     const config = await configure({ agent: { restricted: agent } })
     expect(config.agent!.restricted.permission).toMatchObject({ lumina_parallel_web_search: 'deny' })

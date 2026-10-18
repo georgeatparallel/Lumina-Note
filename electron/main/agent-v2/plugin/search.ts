@@ -11,11 +11,16 @@ export interface SearchConfig {
   }>
 }
 
-// Opencode permission names support '*' and '?' wildcards.
+// Keep permission-name matching aligned with the release-pinned opencode
+// util/wildcard.ts, including its optional trailing " *" convention.
 function matches(pattern: string, name: string): boolean {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&')
+  name = name.replaceAll('\\', '/')
+  pattern = pattern.replaceAll('\\', '/')
+  let escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*/g, '.*').replace(/\?/g, '.')
+  if (escaped.endsWith(' .*')) escaped = escaped.slice(0, -3) + '( .*)?'
   const flags = process.platform === 'win32' ? 'si' : 's'
-  return new RegExp(`^${escaped.replace(/\*/g, '.*').replace(/\?/g, '.')}$`, flags).test(name)
+  return new RegExp(`^${escaped}$`, flags).test(name)
 }
 
 /**
